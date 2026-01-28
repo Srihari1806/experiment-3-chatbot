@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Chatbot Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>AI Chatbot Lab</h1>
+            <p class="subtitle">Local Secure Document & Web Intelligence • Powered by Ollama</p>
+        </header>
+
+        <div class="main-grid">
+            <!-- Section 1: Document Chat -->
+            <div class="card">
+                <h2>
+                    <span>📄</span> Document Intelligence
+                </h2>
+                <div class="input-group">
+                    <label for="doc-upload">Upload PDF, Word, or Excel</label>
+                    <input type="file" id="doc-upload" accept=".pdf,.docx,.xlsx">
+                </div>
+                <div class="input-group">
+                    <label for="doc-query">Ask about the document</label>
+                    <input type="text" id="doc-query" placeholder="e.g., Summarize the main points...">
+                </div>
+                <button id="doc-btn" onclick="handleDocChat()">
+                    <span>Analyze & Answer</span>
+                </button>
+                <div id="doc-response" class="response-area hidden"></div>
+            </div>
+
+            <!-- Section 2: Web Scraper -->
+            <div class="card">
+                <h2>
+                    <span>🌐</span> Web Researcher
+                </h2>
+                <div class="input-group">
+                    <label for="web-url">Website URL or Topic</label>
+                    <input type="text" id="web-url" placeholder="https://example.com or 'Latest AI News'">
+                </div>
+                <div class="input-group">
+                    <label for="web-prompt">Specific Question (Optional)</label>
+                    <input type="text" id="web-prompt" placeholder="What do you want to know?">
+                </div>
+                <button id="web-btn" onclick="handleWebScrape()">
+                    <span>Scrape & Summarize</span>
+                </button>
+                <div id="web-response" class="response-area hidden"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function handleDocChat() {
+            const fileInput = document.getElementById('doc-upload');
+            const queryInput = document.getElementById('doc-query');
+            const responseArea = document.getElementById('doc-response');
+            const btn = document.getElementById('doc-btn');
+
+            if (!fileInput.files[0] && !queryInput.value) {
+                alert("Please upload a file or ask a question.");
+                return;
+            }
+
+            setLoading(btn, responseArea, true);
+
+            const formData = new FormData();
+            if (fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+            formData.append('query', queryInput.value);
+
+            try {
+                const res = await fetch('/chat_document', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                responseArea.textContent = data.response;
+            } catch (err) {
+                responseArea.textContent = "Error: " + err.message;
+            } finally {
+                setLoading(btn, responseArea, false);
+            }
+        }
+
+        async function handleWebScrape() {
+            const urlInput = document.getElementById('web-url');
+            const promptInput = document.getElementById('web-prompt');
+            const responseArea = document.getElementById('web-response');
+            const btn = document.getElementById('web-btn');
+
+            if (!urlInput.value) {
+                alert("Please enter a URL or topic.");
+                return;
+            }
+
+            setLoading(btn, responseArea, true);
+
+            try {
+                const res = await fetch('/scrape_web', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: urlInput.value,
+                        prompt: promptInput.value
+                    })
+                });
+                const data = await res.json();
+                responseArea.textContent = data.response;
+            } catch (err) {
+                responseArea.textContent = "Error: " + err.message;
+            } finally {
+                setLoading(btn, responseArea, false);
+            }
+        }
+
+        function setLoading(btn, area, isLoading) {
+            if (isLoading) {
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.dataset.originalText = originalText;
+                btn.innerHTML = '<div class="spinner"></div> Processing...';
+                area.classList.remove('hidden');
+                area.textContent = "Thinking...";
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.dataset.originalText;
+            }
+        }
+    </script>
+</body>
+
+</html>

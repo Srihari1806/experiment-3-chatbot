@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description"
+        content="AI Chatbot Lab - Chat with your documents and research any website using local AI powered by Ollama.">
+    <title>AI Chatbot Lab</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Top Navigation -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <span class="logo-icon">🤖</span>
+            AI Chatbot Lab
+        </a>
+        <span class="navbar-info">Powered by Ollama · TinyLlama Model</span>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="page-wrapper">
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1>Document & Web Intelligence</h1>
+            <p>Upload a document to ask questions about it, or enter a website URL to get an instant AI summary.</p>
+        </div>
+
+        <!-- Info Banner -->
+        <div class="info-banner">
+            ℹ️ All processing is done locally on your machine. No data is sent to external servers.
+        </div>
+
+        <!-- Tool Cards -->
+        <div class="section-cards">
+
+            <!-- Card 1: Document Chat -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">📄</div>
+                    <div>
+                        <h2>Document Intelligence</h2>
+                        <p>Upload a file and ask questions about its content</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="doc-upload">Upload Document</label>
+                        <input type="file" id="doc-upload" accept=".pdf,.docx,.xlsx">
+                        <div class="form-hint">Supported formats: PDF, Word (.docx), Excel (.xlsx)</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="doc-query">Your Question</label>
+                        <input type="text" id="doc-query" placeholder="e.g. Summarize the main points of this document">
+                    </div>
+                    <button class="btn btn-primary" id="doc-btn" onclick="handleDocChat()">
+                        <span>Analyze &amp; Answer</span>
+                    </button>
+
+                    <div id="doc-response-box" class="response-box hidden">
+                        <div class="response-box-header">AI Response</div>
+                        <div id="doc-response" class="response-area"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Card 2: Web Scraper -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-icon">🌐</div>
+                    <div>
+                        <h2>Web Researcher</h2>
+                        <p>Enter any URL and get an AI-powered summary</p>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-group">
+                        <label for="web-url">Website URL</label>
+                        <input type="text" id="web-url" placeholder="e.g. https://example.com">
+                        <div class="form-hint">Enter a full URL starting with https://</div>
+                    </div>
+                    <div class="form-group">
+                        <label for="web-prompt">Specific Question <span
+                                style="font-weight:400; color:#9ca3af;">(Optional)</span></label>
+                        <input type="text" id="web-prompt" placeholder="e.g. What is the main topic of this page?">
+                    </div>
+                    <button class="btn btn-primary" id="web-btn" onclick="handleWebScrape()">
+                        <span>Scrape &amp; Summarize</span>
+                    </button>
+
+                    <div id="web-response-box" class="response-box hidden">
+                        <div class="response-box-header">AI Response</div>
+                        <div id="web-response" class="response-area"></div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            AI Chatbot Lab &nbsp;·&nbsp; AD Lab Experiment 3 &nbsp;·&nbsp; Running locally on port 5000
+        </div>
+
+    </div>
+
+    <script>
+        async function handleDocChat() {
+            const fileInput = document.getElementById('doc-upload');
+            const queryInput = document.getElementById('doc-query');
+            const responseArea = document.getElementById('doc-response');
+            const responseBox = document.getElementById('doc-response-box');
+            const btn = document.getElementById('doc-btn');
+
+            if (!fileInput.files[0] && !queryInput.value.trim()) {
+                alert("Please upload a file or enter a question.");
+                return;
+            }
+
+            setLoading(btn, responseArea, responseBox, true);
+
+            const formData = new FormData();
+            if (fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+            formData.append('query', queryInput.value);
+
+            try {
+                const res = await fetch('/chat_document', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                responseArea.textContent = data.response;
+                responseArea.classList.remove('thinking');
+            } catch (err) {
+                responseArea.textContent = "Error: " + err.message;
+                responseArea.classList.remove('thinking');
+            } finally {
+                setLoading(btn, responseArea, responseBox, false);
+            }
+        }
+
+        async function handleWebScrape() {
+            const urlInput = document.getElementById('web-url');
+            const promptInput = document.getElementById('web-prompt');
+            const responseArea = document.getElementById('web-response');
+            const responseBox = document.getElementById('web-response-box');
+            const btn = document.getElementById('web-btn');
+
+            if (!urlInput.value.trim()) {
+                alert("Please enter a website URL.");
+                return;
+            }
+
+            setLoading(btn, responseArea, responseBox, true);
+
+            try {
+                const res = await fetch('/scrape_web', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        url: urlInput.value,
+                        prompt: promptInput.value
+                    })
+                });
+                const data = await res.json();
+                responseArea.textContent = data.response;
+                responseArea.classList.remove('thinking');
+            } catch (err) {
+                responseArea.textContent = "Error: " + err.message;
+                responseArea.classList.remove('thinking');
+            } finally {
+                setLoading(btn, responseArea, responseBox, false);
+            }
+        }
+
+        function setLoading(btn, area, box, isLoading) {
+            if (isLoading) {
+                btn.disabled = true;
+                btn.dataset.originalText = btn.innerHTML;
+                btn.innerHTML = '<div class="spinner"></div> Processing...';
+                box.classList.remove('hidden');
+                area.textContent = "Thinking, please wait...";
+                area.classList.add('thinking');
+            } else {
+                btn.disabled = false;
+                btn.innerHTML = btn.dataset.originalText;
+            }
+        }
+    </script>
+
+</body>
+
+</html>

@@ -7,7 +7,7 @@
     <meta name="description"
         content="AI Chatbot Lab - Chat with your documents and research any website using local AI powered by Ollama.">
     <title>AI Chatbot Lab</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 
@@ -104,12 +104,36 @@
 
         <!-- Footer -->
         <div class="footer">
-            AI Chatbot Lab &nbsp;·&nbsp; AD Lab Experiment 3 &nbsp;·&nbsp; Running locally on port 5000
+            AI Chatbot Lab &nbsp;·&nbsp; AD Lab Experiment 3 &nbsp;·&nbsp; <span id="status-badge">Static Preview (GitHub Pages)</span>
         </div>
+        <script>
+            if (!window.location.hostname.includes('github.io')) {
+                document.getElementById('status-badge').innerHTML = "Running locally on port 5000";
+            }
+        </script>
 
     </div>
 
     <script>
+        // Check if we're on GitHub Pages
+        const isGitHubPages = window.location.hostname.includes('github.io');
+
+        if (isGitHubPages) {
+            console.log("Running in Static Mode on GitHub Pages");
+            // Override fetch to explain backend is needed
+            const originalFetch = window.fetch;
+            window.fetch = async (...args) => {
+                const endpoint = args[0];
+                if (endpoint === '/chat_document' || endpoint === '/scrape_web') {
+                    return {
+                        ok: true,
+                        json: async () => ({ response: "⚠️ This is a static preview on GitHub Pages. To use the AI features, you must run the project locally with Ollama. See README.md for instructions." })
+                    };
+                }
+                return originalFetch(...args);
+            };
+        }
+
         async function handleDocChat() {
             const fileInput = document.getElementById('doc-upload');
             const queryInput = document.getElementById('doc-query');
